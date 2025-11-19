@@ -10,6 +10,9 @@ import React, {
 import { motion, AnimatePresence } from "framer-motion";
 
 // ==================== TYPES ====================
+
+type EducationLevel = 'Pre-Primary' | 'Lower Primary' | 'Upper Primary' | 'Junior Secondary' | 'Senior Secondary';
+type CareerPathway = 'Arts and Sports Science' | 'STEM' | 'Social Sciences' | null; 
 interface Student {
   id: string;
   name: string;
@@ -20,6 +23,12 @@ interface Student {
     address?: string;
   };
   classId: string;
+  grade: string;
+  stream: string;
+  educationLevel: EducationLevel;
+  subjects: string[];
+  optionalSubjects?: string[];
+  careerPathway?: CareerPathway;
   competencies: {
     criticalThinking: number;
     creativity: number;
@@ -29,15 +38,10 @@ interface Student {
     digitalLiteracy: number;
     learningToLearn: number;
   };
-  attendance: Array<{ date: string; status: "present" | "absent" | "late" }>;
+  attendance: Array<{ date: string; status: 'present' | 'absent' | 'late' }>;
   fees: {
     balance: number;
-    payments: Array<{
-      id: string;
-      amount: number;
-      date: string;
-      method: string;
-    }>;
+    payments: Array<{ id: string; amount: number; date: string; method: string }>;
   };
   messages: string[];
   extracurriculars?: string[];
@@ -47,6 +51,7 @@ interface Teacher {
   id: string;
   name: string;
   subjects: string[];
+  educationLevels: EducationLevel[];
   lessonPlans: string[];
   email?: string;
   phone?: string;
@@ -55,7 +60,11 @@ interface Teacher {
 interface Class {
   id: string;
   name: string;
+  grade: string;
+  stream: string;
+  educationLevel: EducationLevel;
   students: string[];
+  subjects: string[];
   timetable: string[];
   teacherId?: string;
 }
@@ -68,6 +77,7 @@ interface LessonPlan {
   sharedWith: string[];
   teacherId: string;
   subject: string;
+  educationLevel: EducationLevel;
   createdAt: string;
 }
 
@@ -118,7 +128,7 @@ interface Message {
   to: string[];
   from: string;
   content: string;
-  type: "SMS" | "Email";
+  type: 'SMS' | 'Email';
   timestamp: string;
   read?: boolean;
 }
@@ -134,13 +144,41 @@ interface Event {
 interface Report {
   id: string;
   studentId: string;
-  competencies: Student["competencies"];
+  competencies: Student['competencies'];
   holisticNotes: string;
   term: string;
   generatedAt: string;
 }
 
-type Role = "Admin" | "Teacher" | "Parent" | "Student";
+interface Book {
+  id: string;
+  title: string;
+  author: string;
+  isbn: string;
+  category: string;
+  educationLevel: EducationLevel[];
+  quantity: number;
+  available: number;
+  publisher?: string;
+  yearPublished?: string;
+  description?: string;
+  coverImage?: string;
+}
+
+interface BookLoan {
+  id: string;
+  bookId: string;
+  borrowerId: string;
+  borrowerType: 'Student' | 'Teacher' | 'Staff';
+  borrowerName: string;
+  dateIssued: string;
+  dateDue: string;
+  dateReturned?: string;
+  status: 'issued' | 'returned' | 'overdue';
+  fine?: number;
+}
+
+type Role = 'Admin' | 'Teacher' | 'Parent' | 'Student';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -160,31 +198,111 @@ interface DataState {
   messages: Message[];
   events: Event[];
   reports: Report[];
+  books: Book[];
+  bookLoans: BookLoan[];
 }
 
-type Page =
-  | "login"
-  | "dashboard"
-  | "students"
-  | "assessments"
-  | "cbc-reports"
-  | "lesson-plans"
-  | "finance"
-  | "hr"
-  | "communication"
-  | "reports"
-  | "attendance"
-  | "timetable"
-  | "portal"
-  | "messages"
-  | "calendar"
-  | "academics";
+type Page = 'login' | 'dashboard' | 'students' | 'assessments' | 'cbc-reports' | 'lesson-plans' | 
+  'finance' | 'hr' | 'communication' | 'reports' | 'attendance' | 'timetable' | 'portal' | 'messages' | 
+  'calendar' | 'academics' | 'library';
+
+  // ==================== CURRICULUM DATA ====================
+const CURRICULUM = {
+  'Pre-Primary': {
+    grades: ['PP1', 'PP2'],
+    subjects: [
+      'Environmental Activities',
+      'Language Activities',
+      'Psychomotor and Creative Activities',
+      'Mathematical Activities',
+      'Religious Education Activities'
+    ]
+  },
+  'Lower Primary': {
+    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
+    subjects: [
+      'Mathematical Activities',
+      'Literacy',
+      'English Language Activities',
+      'Hygiene and Nutrition Activities',
+      'Religious Education Activities',
+      'Environmental Activities',
+      'Movement and Creative Activities'
+    ]
+  },
+  'Upper Primary': {
+    grades: ['Grade 4', 'Grade 5', 'Grade 6'],
+    subjects: [
+      'English',
+      'Mathematics',
+      'Agriculture',
+      'Social Studies',
+      'Kiswahili',
+      'Home Science',
+      'Science and Technology',
+      'Physical and Health Education',
+      'Religious Education (CRE/IRE/HRE)',
+      'Creative Arts'
+    ],
+    optional: ['Foreign Languages']
+  },
+  'Junior Secondary': {
+    grades: ['Grade 7', 'Grade 8', 'Grade 9'],
+    coreSubjects: [
+      'Mathematics',
+      'English',
+      'Kiswahili',
+      'Pre-Technical and Pre-Career Education',
+      'Integrated Science',
+      'Social Studies',
+      'Agriculture',
+      'Religious Education',
+      'Health Education',
+      'Life Skills Education',
+      'Sports and Physical Education',
+      'Business Studies'
+    ],
+    optionalSubjects: [
+      'Visual Arts',
+      'Home Science',
+      'Performing Arts',
+      'Computer Science',
+      'Foreign Languages (French/German/Arabic/Mandarin)',
+      'Indigenous Languages'
+    ]
+  },
+  'Senior Secondary': {
+    grades: ['Grade 10', 'Grade 11', 'Grade 12'],
+    pathways: {
+      'Arts and Sports Science': [
+        'Languages',
+        'Humanities',
+        'Sports Science',
+        'Performing Arts',
+        'Visual Arts'
+      ],
+      'STEM': [
+        'Mathematics',
+        'Physics',
+        'Chemistry',
+        'Biology',
+        'Computer Science',
+        'Engineering'
+      ],
+      'Social Sciences': [
+        'Business Studies',
+        'Economics',
+        'Geography',
+        'History',
+        'Government'
+      ]
+    }
+  }
+};
+
 
 // ==================== HOOKS ====================
-function useLocalStorage<T>(
-  key: string,
-  initialValue: T
-): [T, (value: T | ((val: T) => T)) => void] {
+function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -197,8 +315,7 @@ function useLocalStorage<T>(
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
@@ -213,488 +330,368 @@ function useLocalStorage<T>(
 const generateSeedData = (): DataState => {
   const students: Student[] = [
     {
-      id: "s1",
-      name: "Amina Mwangi",
-      bioData: {
-        dob: "15/03/2012",
-        parentContact: "+254712345678",
-        email: "parent1@example.com",
-        address: "Nairobi",
-      },
-      classId: "c1",
-      competencies: {
-        criticalThinking: 85,
-        creativity: 78,
-        communication: 90,
-        collaboration: 82,
-        citizenship: 88,
-        digitalLiteracy: 75,
-        learningToLearn: 80,
-      },
+      id: 's1',
+      name: 'Amina Mwangi',
+      bioData: { dob: '15/03/2012', parentContact: '+254712345678', email: 'parent1@example.com', address: 'Nairobi' },
+      classId: 'c1',
+      grade: 'Grade 6',
+      stream: 'A',
+      educationLevel: 'Upper Primary',
+      subjects: ['English', 'Mathematics', 'Science and Technology', 'Social Studies', 'Kiswahili'],
+      competencies: { criticalThinking: 85, creativity: 78, communication: 90, collaboration: 82, citizenship: 88, digitalLiteracy: 75, learningToLearn: 80 },
       attendance: [
-        { date: "10/11/2025", status: "present" },
-        { date: "11/11/2025", status: "present" },
+        { date: '10/11/2025', status: 'present' }, 
+        { date: '11/11/2025', status: 'present' },
+        { date: '12/11/2025', status: 'present' },
+        { date: '13/11/2025', status: 'late' },
+        { date: '14/11/2025', status: 'present' }
       ],
-      fees: {
-        balance: 15000,
-        payments: [
-          { id: "p1", amount: 35000, date: "05/09/2025", method: "M-PESA" },
-        ],
-      },
-      messages: ["m1"],
-      extracurriculars: ["Drama", "Debate"],
+      fees: { balance: 15000, payments: [{ id: 'p1', amount: 35000, date: '05/09/2025', method: 'M-PESA' }] },
+      messages: ['m1'],
+      extracurriculars: ['Drama', 'Debate']
     },
     {
-      id: "s2",
-      name: "Brian Omondi",
-      bioData: {
-        dob: "22/07/2012",
-        parentContact: "+254723456789",
-        email: "parent2@example.com",
-        address: "Mombasa",
-      },
-      classId: "c1",
-      competencies: {
-        criticalThinking: 70,
-        creativity: 88,
-        communication: 75,
-        collaboration: 80,
-        citizenship: 78,
-        digitalLiteracy: 92,
-        learningToLearn: 85,
-      },
+      id: 's2',
+      name: 'Brian Omondi',
+      bioData: { dob: '22/07/2013', parentContact: '+254723456789', email: 'parent2@example.com', address: 'Mombasa' },
+      classId: 'c2',
+      grade: 'Grade 8',
+      stream: 'B',
+      educationLevel: 'Junior Secondary',
+      subjects: ['Mathematics', 'English', 'Kiswahili', 'Integrated Science', 'Business Studies'],
+      optionalSubjects: ['Computer Science', 'Visual Arts'],
+      competencies: { criticalThinking: 70, creativity: 88, communication: 75, collaboration: 80, citizenship: 78, digitalLiteracy: 92, learningToLearn: 85 },
       attendance: [
-        { date: "10/11/2025", status: "present" },
-        { date: "11/11/2025", status: "late" },
+        { date: '10/11/2025', status: 'present' }, 
+        { date: '11/11/2025', status: 'late' },
+        { date: '12/11/2025', status: 'present' },
+        { date: '13/11/2025', status: 'present' },
+        { date: '14/11/2025', status: 'absent' }
       ],
-      fees: {
-        balance: 20000,
-        payments: [
-          { id: "p2", amount: 30000, date: "01/09/2025", method: "Bank" },
-        ],
-      },
+      fees: { balance: 20000, payments: [{ id: 'p2', amount: 30000, date: '01/09/2025', method: 'Bank' }] },
       messages: [],
-      extracurriculars: ["Football", "Coding Club"],
+      extracurriculars: ['Football', 'Coding Club']
     },
     {
-      id: "s3",
-      name: "Cynthia Njeri",
-      bioData: {
-        dob: "10/01/2013",
-        parentContact: "+254734567890",
-        email: "parent3@example.com",
-        address: "Kisumu",
-      },
-      classId: "c2",
-      competencies: {
-        criticalThinking: 92,
-        creativity: 85,
-        communication: 88,
-        collaboration: 90,
-        citizenship: 95,
-        digitalLiteracy: 80,
-        learningToLearn: 90,
-      },
+      id: 's3',
+      name: 'Cynthia Njeri',
+      bioData: { dob: '10/01/2019', parentContact: '+254734567890', email: 'parent3@example.com', address: 'Kisumu' },
+      classId: 'c3',
+      grade: 'Grade 2',
+      stream: 'A',
+      educationLevel: 'Lower Primary',
+      subjects: ['Mathematical Activities', 'Literacy', 'English Language Activities', 'Environmental Activities'],
+      competencies: { criticalThinking: 92, creativity: 85, communication: 88, collaboration: 90, citizenship: 95, digitalLiteracy: 80, learningToLearn: 90 },
       attendance: [
-        { date: "10/11/2025", status: "present" },
-        { date: "11/11/2025", status: "present" },
+        { date: '10/11/2025', status: 'present' }, 
+        { date: '11/11/2025', status: 'present' },
+        { date: '12/11/2025', status: 'present' },
+        { date: '13/11/2025', status: 'present' },
+        { date: '14/11/2025', status: 'present' }
       ],
-      fees: {
-        balance: 0,
-        payments: [
-          { id: "p3", amount: 50000, date: "28/08/2025", method: "M-PESA" },
-        ],
-      },
-      messages: ["m2"],
-      extracurriculars: ["Science Club", "Music"],
+      fees: { balance: 0, payments: [{ id: 'p3', amount: 50000, date: '28/08/2025', method: 'M-PESA' }] },
+      messages: ['m2'],
+      extracurriculars: ['Science Club', 'Music']
     },
     {
-      id: "s4",
-      name: "Daniel Kamau",
-      bioData: {
-        dob: "05/09/2012",
-        parentContact: "+254745678901",
-        email: "parent4@example.com",
-        address: "Nakuru",
-      },
-      classId: "c2",
-      competencies: {
-        criticalThinking: 65,
-        creativity: 70,
-        communication: 68,
-        collaboration: 75,
-        citizenship: 72,
-        digitalLiteracy: 78,
-        learningToLearn: 70,
-      },
+      id: 's4',
+      name: 'Daniel Kamau',
+      bioData: { dob: '05/09/2009', parentContact: '+254745678901', email: 'parent4@example.com', address: 'Nakuru' },
+      classId: 'c4',
+      grade: 'Grade 11',
+      stream: 'A',
+      educationLevel: 'Senior Secondary',
+      subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology'],
+      careerPathway: 'STEM',
+      competencies: { criticalThinking: 65, creativity: 70, communication: 68, collaboration: 75, citizenship: 72, digitalLiteracy: 78, learningToLearn: 70 },
       attendance: [
-        { date: "10/11/2025", status: "absent" },
-        { date: "11/11/2025", status: "present" },
+        { date: '10/11/2025', status: 'absent' }, 
+        { date: '11/11/2025', status: 'present' },
+        { date: '12/11/2025', status: 'present' },
+        { date: '13/11/2025', status: 'present' },
+        { date: '14/11/2025', status: 'late' }
       ],
-      fees: {
-        balance: 25000,
-        payments: [
-          { id: "p4", amount: 25000, date: "15/09/2025", method: "Cash" },
-        ],
-      },
+      fees: { balance: 25000, payments: [{ id: 'p4', amount: 25000, date: '15/09/2025', method: 'Cash' }] },
       messages: [],
-      extracurriculars: ["Basketball"],
+      extracurriculars: ['Basketball']
     },
     {
-      id: "s5",
-      name: "Faith Akinyi",
-      bioData: {
-        dob: "18/11/2013",
-        parentContact: "+254756789012",
-        email: "parent5@example.com",
-        address: "Eldoret",
-      },
-      classId: "c3",
-      competencies: {
-        criticalThinking: 88,
-        creativity: 92,
-        communication: 85,
-        collaboration: 87,
-        citizenship: 90,
-        digitalLiteracy: 85,
-        learningToLearn: 88,
-      },
+      id: 's5',
+      name: 'Faith Akinyi',
+      bioData: { dob: '18/04/2021', parentContact: '+254756789012', email: 'parent5@example.com', address: 'Eldoret' },
+      classId: 'c5',
+      grade: 'PP2',
+      stream: 'B',
+      educationLevel: 'Pre-Primary',
+      subjects: ['Environmental Activities', 'Language Activities', 'Mathematical Activities'],
+      competencies: { criticalThinking: 88, creativity: 92, communication: 85, collaboration: 87, citizenship: 90, digitalLiteracy: 85, learningToLearn: 88 },
       attendance: [
-        { date: "10/11/2025", status: "present" },
-        { date: "11/11/2025", status: "present" },
+        { date: '10/11/2025', status: 'present' }, 
+        { date: '11/11/2025', status: 'present' },
+        { date: '12/11/2025', status: 'present' },
+        { date: '13/11/2025', status: 'present' },
+        { date: '14/11/2025', status: 'present' }
       ],
-      fees: {
-        balance: 10000,
-        payments: [
-          { id: "p5", amount: 40000, date: "20/08/2025", method: "M-PESA" },
-        ],
-      },
-      messages: ["m3"],
-      extracurriculars: ["Art", "Environment Club"],
-    },
+      fees: { balance: 10000, payments: [{ id: 'p5', amount: 40000, date: '20/08/2025', method: 'M-PESA' }] },
+      messages: ['m3'],
+      extracurriculars: ['Art', 'Play Activities']
+    }
   ];
 
   const teachers: Teacher[] = [
-    {
-      id: "t1",
-      name: "Mr. John Kiprotich",
-      subjects: ["Mathematics", "Science"],
-      lessonPlans: ["lp1", "lp2"],
-      email: "john.k@school.ac.ke",
-      phone: "+254700111222",
-    },
-    {
-      id: "t2",
-      name: "Ms. Grace Wanjiru",
-      subjects: ["English", "Kiswahili"],
-      lessonPlans: ["lp3"],
-      email: "grace.w@school.ac.ke",
-      phone: "+254700222333",
-    },
-    {
-      id: "t3",
-      name: "Mr. David Otieno",
-      subjects: ["Social Studies", "CRE"],
-      lessonPlans: ["lp4"],
-      email: "david.o@school.ac.ke",
-      phone: "+254700333444",
-    },
+    { id: 't1', name: 'Mr. John Kiprotich', subjects: ['Mathematics', 'Science and Technology', 'Physics'], educationLevels: ['Upper Primary', 'Junior Secondary', 'Senior Secondary'], lessonPlans: ['lp1', 'lp2'], email: 'john.k@school.ac.ke', phone: '+254700111222' },
+    { id: 't2', name: 'Ms. Grace Wanjiru', subjects: ['English', 'Kiswahili', 'Language Activities'], educationLevels: ['Pre-Primary', 'Lower Primary', 'Upper Primary', 'Junior Secondary'], lessonPlans: ['lp3'], email: 'grace.w@school.ac.ke', phone: '+254700222333' },
+    { id: 't3', name: 'Mr. David Otieno', subjects: ['Social Studies', 'Religious Education', 'Integrated Science'], educationLevels: ['Upper Primary', 'Junior Secondary'], lessonPlans: ['lp4'], email: 'david.o@school.ac.ke', phone: '+254700333444' }
   ];
 
   const classes: Class[] = [
-    {
-      id: "c1",
-      name: "Grade 6 Blue",
-      students: ["s1", "s2"],
-      timetable: ["tt1", "tt2"],
-      teacherId: "t1",
-    },
-    {
-      id: "c2",
-      name: "Grade 7 Red",
-      students: ["s3", "s4"],
-      timetable: ["tt3", "tt4"],
-      teacherId: "t2",
-    },
-    {
-      id: "c3",
-      name: "Grade 8 Green",
-      students: ["s5"],
-      timetable: ["tt5"],
-      teacherId: "t3",
-    },
+    { id: 'c1', name: 'Grade 6 A', grade: 'Grade 6', stream: 'A', educationLevel: 'Upper Primary', students: ['s1'], subjects: CURRICULUM['Upper Primary'].subjects, timetable: ['tt1'], teacherId: 't1' },
+    { id: 'c2', name: 'Grade 8 B', grade: 'Grade 8', stream: 'B', educationLevel: 'Junior Secondary', students: ['s2'], subjects: CURRICULUM['Junior Secondary'].coreSubjects, timetable: ['tt2'], teacherId: 't2' },
+    { id: 'c3', name: 'Grade 2 A', grade: 'Grade 2', stream: 'A', educationLevel: 'Lower Primary', students: ['s3'], subjects: CURRICULUM['Lower Primary'].subjects, timetable: ['tt3'], teacherId: 't3' },
+    { id: 'c4', name: 'Grade 11 A', grade: 'Grade 11', stream: 'A', educationLevel: 'Senior Secondary', students: ['s4'], subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology'], timetable: ['tt4'], teacherId: 't1' },
+    { id: 'c5', name: 'PP2 B', grade: 'PP2', stream: 'B', educationLevel: 'Pre-Primary', students: ['s5'], subjects: CURRICULUM['Pre-Primary'].subjects, timetable: ['tt5'], teacherId: 't2' }
   ];
 
   const lessonPlans: LessonPlan[] = [
-    {
-      id: "lp1",
-      title: "Algebra Basics",
-      scheme: "Introduction to variables and equations",
-      alignedCBC: true,
-      sharedWith: ["t2"],
-      teacherId: "t1",
-      subject: "Mathematics",
-      createdAt: "01/09/2025",
-    },
-    {
-      id: "lp2",
-      title: "Scientific Method",
-      scheme: "Hypothesis, experimentation, conclusion",
-      alignedCBC: true,
-      sharedWith: [],
-      teacherId: "t1",
-      subject: "Science",
-      createdAt: "05/09/2025",
-    },
-    {
-      id: "lp3",
-      title: "Essay Writing",
-      scheme: "Structure: Introduction, Body, Conclusion",
-      alignedCBC: true,
-      sharedWith: ["t1"],
-      teacherId: "t2",
-      subject: "English",
-      createdAt: "08/09/2025",
-    },
-    {
-      id: "lp4",
-      title: "Kenyan Geography",
-      scheme: "Physical and political features of Kenya",
-      alignedCBC: true,
-      sharedWith: [],
-      teacherId: "t3",
-      subject: "Social Studies",
-      createdAt: "10/09/2025",
-    },
+    { id: 'lp1', title: 'Algebra Basics', scheme: 'Introduction to variables and equations. Focus on problem-solving and critical thinking skills.', alignedCBC: true, sharedWith: ['t2'], teacherId: 't1', subject: 'Mathematics', educationLevel: 'Upper Primary', createdAt: '01/09/2025' },
+    { id: 'lp2', title: 'Scientific Method', scheme: 'Hypothesis, experimentation, conclusion. Hands-on experiments to develop inquiry skills.', alignedCBC: true, sharedWith: [], teacherId: 't1', subject: 'Science and Technology', educationLevel: 'Upper Primary', createdAt: '05/09/2025' },
+    { id: 'lp3', title: 'Essay Writing Skills', scheme: 'Structure: Introduction, Body, Conclusion. Developing communication competencies.', alignedCBC: true, sharedWith: ['t1'], teacherId: 't2', subject: 'English', educationLevel: 'Junior Secondary', createdAt: '08/09/2025' },
+    { id: 'lp4', title: 'Kenyan Geography', scheme: 'Physical and political features of Kenya. Map reading and citizenship values.', alignedCBC: true, sharedWith: [], teacherId: 't3', subject: 'Social Studies', educationLevel: 'Upper Primary', createdAt: '10/09/2025' }
   ];
 
   const timetable: TimetableSlot[] = [
-    {
-      id: "tt1",
-      day: "Monday",
-      period: "1",
-      subject: "Mathematics",
-      teacherId: "t1",
-      classId: "c1",
-      time: "08:00-09:00",
-    },
-    {
-      id: "tt2",
-      day: "Monday",
-      period: "2",
-      subject: "English",
-      teacherId: "t2",
-      classId: "c1",
-      time: "09:00-10:00",
-    },
-    {
-      id: "tt3",
-      day: "Tuesday",
-      period: "1",
-      subject: "Science",
-      teacherId: "t1",
-      classId: "c2",
-      time: "08:00-09:00",
-    },
-    {
-      id: "tt4",
-      day: "Tuesday",
-      period: "2",
-      subject: "Kiswahili",
-      teacherId: "t2",
-      classId: "c2",
-      time: "09:00-10:00",
-    },
-    {
-      id: "tt5",
-      day: "Wednesday",
-      period: "1",
-      subject: "Social Studies",
-      teacherId: "t3",
-      classId: "c3",
-      time: "08:00-09:00",
-    },
+    { id: 'tt1', day: 'Monday', period: '1', subject: 'Mathematics', teacherId: 't1', classId: 'c1', time: '08:00-09:00' },
+    { id: 'tt2', day: 'Monday', period: '2', subject: 'English', teacherId: 't2', classId: 'c2', time: '09:00-10:00' },
+    { id: 'tt3', day: 'Tuesday', period: '1', subject: 'Literacy', teacherId: 't3', classId: 'c3', time: '08:00-09:00' },
+    { id: 'tt4', day: 'Tuesday', period: '2', subject: 'Physics', teacherId: 't1', classId: 'c4', time: '09:00-10:00' },
+    { id: 'tt5', day: 'Wednesday', period: '1', subject: 'Language Activities', teacherId: 't2', classId: 'c5', time: '08:00-09:00' },
+    { id: 'tt6', day: 'Wednesday', period: '2', subject: 'Science and Technology', teacherId: 't1', classId: 'c1', time: '09:00-10:00' },
+    { id: 'tt7', day: 'Thursday', period: '1', subject: 'Integrated Science', teacherId: 't3', classId: 'c2', time: '08:00-09:00' },
+    { id: 'tt8', day: 'Friday', period: '1', subject: 'Social Studies', teacherId: 't3', classId: 'c1', time: '08:00-09:00' }
   ];
 
   const exams: Exam[] = [
-    {
-      id: "e1",
-      name: "Mid-Term Math",
-      date: "15/10/2025",
-      classId: "c1",
-      subject: "Mathematics",
-      schedule: [
-        { studentId: "s1", marks: 85 },
-        { studentId: "s2", marks: 70 },
-      ],
-    },
-    {
-      id: "e2",
-      name: "End-Term Science",
-      date: "20/11/2025",
-      classId: "c2",
-      subject: "Science",
-      schedule: [
-        { studentId: "s3", marks: 92 },
-        { studentId: "s4", marks: 65 },
-      ],
-    },
+    { id: 'e1', name: 'Mid-Term Math Exam', date: '15/10/2025', classId: 'c1', subject: 'Mathematics', schedule: [{ studentId: 's1', marks: 85 }] },
+    { id: 'e2', name: 'End-Term Science Test', date: '20/11/2025', classId: 'c2', subject: 'Integrated Science', schedule: [{ studentId: 's2', marks: 70 }] },
+    { id: 'e3', name: 'Physics CAT', date: '25/11/2025', classId: 'c4', subject: 'Physics', schedule: [{ studentId: 's4', marks: 65 }] }
   ];
 
   const fees: Fee[] = [
-    {
-      id: "f1",
-      studentId: "s1",
-      amount: 15000,
-      dueDate: "30/11/2025",
-      paid: false,
-      description: "Term 3 Balance",
-    },
-    {
-      id: "f2",
-      studentId: "s2",
-      amount: 20000,
-      dueDate: "30/11/2025",
-      paid: false,
-      description: "Term 3 Balance",
-    },
-    {
-      id: "f3",
-      studentId: "s4",
-      amount: 25000,
-      dueDate: "30/11/2025",
-      paid: false,
-      description: "Term 3 Balance",
-    },
-    {
-      id: "f4",
-      studentId: "s5",
-      amount: 10000,
-      dueDate: "30/11/2025",
-      paid: false,
-      description: "Term 3 Balance",
-    },
+    { id: 'f1', studentId: 's1', amount: 15000, dueDate: '30/11/2025', paid: false, description: 'Term 3 Balance' },
+    { id: 'f2', studentId: 's2', amount: 20000, dueDate: '30/11/2025', paid: false, description: 'Term 3 Balance' },
+    { id: 'f3', studentId: 's4', amount: 25000, dueDate: '30/11/2025', paid: false, description: 'Term 3 Balance' },
+    { id: 'f4', studentId: 's5', amount: 10000, dueDate: '30/11/2025', paid: false, description: 'Term 3 Balance' }
   ];
 
   const staff: Staff[] = [
-    {
-      id: "st1",
-      name: "Ms. Lucy Nduta",
-      role: "Accountant",
-      payroll: { salary: 80000, deductions: 8000, netPay: 72000 },
-      email: "lucy.n@school.ac.ke",
-      phone: "+254700444555",
-      leaveBalance: 15,
-    },
-    {
-      id: "st2",
-      name: "Mr. Peter Maina",
-      role: "IT Support",
-      payroll: { salary: 60000, deductions: 6000, netPay: 54000 },
-      email: "peter.m@school.ac.ke",
-      phone: "+254700555666",
-      leaveBalance: 20,
-    },
-    {
-      id: "st3",
-      name: "Mrs. Anne Wambui",
-      role: "Librarian",
-      payroll: { salary: 50000, deductions: 5000, netPay: 45000 },
-      email: "anne.w@school.ac.ke",
-      phone: "+254700666777",
-      leaveBalance: 18,
-    },
+    { id: 'st1', name: 'Ms. Lucy Nduta', role: 'Accountant', payroll: { salary: 80000, deductions: 8000, netPay: 72000 }, email: 'lucy.n@school.ac.ke', phone: '+254700444555', leaveBalance: 15 },
+    { id: 'st2', name: 'Mr. Peter Maina', role: 'IT Support', payroll: { salary: 60000, deductions: 6000, netPay: 54000 }, email: 'peter.m@school.ac.ke', phone: '+254700555666', leaveBalance: 20 },
+    { id: 'st3', name: 'Mrs. Anne Wambui', role: 'Librarian', payroll: { salary: 50000, deductions: 5000, netPay: 45000 }, email: 'anne.w@school.ac.ke', phone: '+254700666777', leaveBalance: 18 }
   ];
 
   const messages: Message[] = [
-    {
-      id: "m1",
-      to: ["+254712345678"],
-      from: "school",
-      content: "Parent meeting on Friday at 2pm",
-      type: "SMS",
-      timestamp: "09/11/2025 14:30",
-      read: false,
-    },
-    {
-      id: "m2",
-      to: ["+254734567890"],
-      from: "school",
-      content:
-        "Congratulations! Cynthia has been selected for science competition",
-      type: "Email",
-      timestamp: "08/11/2025 10:00",
-      read: true,
-    },
-    {
-      id: "m3",
-      to: ["+254756789012"],
-      from: "school",
-      content: "Reminder: Fee balance due by end of month",
-      type: "SMS",
-      timestamp: "10/11/2025 09:00",
-      read: false,
-    },
+    { id: 'm1', to: ['+254712345678'], from: 'school', content: 'Parent meeting on Friday at 2pm to discuss Term 3 progress', type: 'SMS', timestamp: '09/11/2025 14:30', read: false },
+    { id: 'm2', to: ['+254734567890'], from: 'school', content: 'Congratulations! Cynthia has been selected for the inter-school science competition', type: 'Email', timestamp: '08/11/2025 10:00', read: true },
+    { id: 'm3', to: ['+254756789012'], from: 'school', content: 'Reminder: Fee balance of KES 10,000 due by end of month', type: 'SMS', timestamp: '10/11/2025 09:00', read: false }
   ];
 
   const events: Event[] = [
-    {
-      id: "ev1",
-      title: "Sports Day",
-      date: "20/11/2025",
-      type: "School Event",
-      description: "Annual inter-house sports competition",
-    },
-    {
-      id: "ev2",
-      title: "Parent-Teacher Meeting",
-      date: "13/11/2025",
-      type: "Meeting",
-      description: "Term 3 progress review",
-    },
-    {
-      id: "ev3",
-      title: "Science Fair",
-      date: "25/11/2025",
-      type: "Academic",
-      description: "Student science project exhibition",
-    },
+    { id: 'ev1', title: 'Sports Day', date: '20/11/2025', type: 'School Event', description: 'Annual inter-house sports competition' },
+    { id: 'ev2', title: 'Parent-Teacher Meeting', date: '13/11/2025', type: 'Meeting', description: 'Term 3 progress review and discussion' },
+    { id: 'ev3', title: 'Science Fair', date: '25/11/2025', type: 'Academic', description: 'Student science project exhibition and awards' },
+    { id: 'ev4', title: 'End of Term Closing', date: '29/11/2025', type: 'School Event', description: 'Term 3 closing ceremony' }
   ];
 
   const reports: Report[] = [
     {
-      id: "r1",
-      studentId: "s1",
+      id: 'r1',
+      studentId: 's1',
       competencies: students[0].competencies,
-      holisticNotes:
-        "Amina demonstrates excellent communication skills and shows strong leadership in group activities. She consistently participates in class discussions and helps peers.",
-      term: "Term 3 2025",
-      generatedAt: "12/11/2025",
+      holisticNotes: 'Amina demonstrates excellent communication skills and shows strong leadership in group activities. She consistently participates in class discussions and helps peers. Her critical thinking abilities are evident in problem-solving tasks. Recommended for advanced mathematics program.',
+      term: 'Term 3 2025',
+      generatedAt: '12/11/2025'
     },
     {
-      id: "r2",
-      studentId: "s3",
+      id: 'r2',
+      studentId: 's3',
       competencies: students[2].competencies,
-      holisticNotes:
-        "Cynthia is an outstanding learner who excels across all competencies. Her critical thinking and citizenship values are exemplary. She actively contributes to environmental conservation initiatives.",
-      term: "Term 3 2025",
-      generatedAt: "12/11/2025",
-    },
+      holisticNotes: 'Cynthia is an outstanding learner who excels across all competencies. Her critical thinking and citizenship values are exemplary. She actively contributes to environmental conservation initiatives and shows remarkable creativity in art activities.',
+      term: 'Term 3 2025',
+      generatedAt: '12/11/2025'
+    }
   ];
 
-  return {
-    students,
-    teachers,
-    classes,
-    lessonPlans,
-    timetable,
-    exams,
-    fees,
-    staff,
-    messages,
-    events,
-    reports,
-  };
+  const books: Book[] = [
+    {
+      id: 'b1',
+      title: 'The River and the Source',
+      author: 'Margaret Ogola',
+      isbn: '978-9966-46-842-7',
+      category: 'Literature',
+      educationLevel: ['Upper Primary', 'Junior Secondary', 'Senior Secondary'],
+      quantity: 50,
+      available: 35,
+      publisher: 'Focus Publishers',
+      yearPublished: '1994',
+      description: 'A classic Kenyan novel following the lives of four generations of women',
+      coverImage: '📚'
+    },
+    {
+      id: 'b2',
+      title: 'Mathematics for Grade 6',
+      author: 'Kenya Institute of Curriculum Development',
+      isbn: '978-9966-00-123-4',
+      category: 'Textbook',
+      educationLevel: ['Upper Primary'],
+      quantity: 100,
+      available: 85,
+      publisher: 'Kenya Literature Bureau',
+      yearPublished: '2023',
+      description: 'CBC-aligned mathematics textbook for Grade 6 learners',
+      coverImage: '📐'
+    },
+    {
+      id: 'b3',
+      title: 'Integrated Science Grade 8',
+      author: 'KICD',
+      isbn: '978-9966-00-234-5',
+      category: 'Textbook',
+      educationLevel: ['Junior Secondary'],
+      quantity: 80,
+      available: 60,
+      publisher: 'Longhorn Publishers',
+      yearPublished: '2023',
+      description: 'Comprehensive science textbook covering biology, chemistry, and physics',
+      coverImage: '🔬'
+    },
+    {
+      id: 'b4',
+      title: 'English Grammar in Use',
+      author: 'Raymond Murphy',
+      isbn: '978-1-107-43920-1',
+      category: 'Reference',
+      educationLevel: ['Upper Primary', 'Junior Secondary', 'Senior Secondary'],
+      quantity: 40,
+      available: 30,
+      publisher: 'Cambridge University Press',
+      yearPublished: '2019',
+      description: 'Self-study reference and practice book for intermediate learners',
+      coverImage: '📖'
+    },
+    {
+      id: 'b5',
+      title: 'Kiswahili Sanifu',
+      author: 'Mwangi wa Mutahi',
+      isbn: '978-9966-25-456-8',
+      category: 'Language',
+      educationLevel: ['Upper Primary', 'Junior Secondary'],
+      quantity: 60,
+      available: 45,
+      publisher: 'East African Publishers',
+      yearPublished: '2022',
+      description: 'Comprehensive Kiswahili language guide for CBC',
+      coverImage: '📕'
+    },
+    {
+      id: 'b6',
+      title: 'Physics for Senior Secondary',
+      author: 'Dr. John Kamau',
+      isbn: '978-9966-30-789-2',
+      category: 'Textbook',
+      educationLevel: ['Senior Secondary'],
+      quantity: 45,
+      available: 20,
+      publisher: 'Oxford University Press',
+      yearPublished: '2023',
+      description: 'Advanced physics textbook for STEM pathway students',
+      coverImage: '⚛️'
+    },
+    {
+      id: 'b7',
+      title: 'Story Time Collection',
+      author: 'Various Authors',
+      isbn: '978-9966-10-111-1',
+      category: 'Fiction',
+      educationLevel: ['Pre-Primary', 'Lower Primary'],
+      quantity: 75,
+      available: 70,
+      publisher: 'Moran Publishers',
+      yearPublished: '2021',
+      description: 'Collection of age-appropriate stories for young learners',
+      coverImage: '📗'
+    },
+    {
+      id: 'b8',
+      title: 'Computer Science Grade 9',
+      author: 'Tech Education Kenya',
+      isbn: '978-9966-40-555-3',
+      category: 'Textbook',
+      educationLevel: ['Junior Secondary'],
+      quantity: 35,
+      available: 25,
+      publisher: 'Digital Learning Press',
+      yearPublished: '2024',
+      description: 'Introduction to programming and digital literacy',
+      coverImage: '💻'
+    }
+  ];
+
+  const bookLoans: BookLoan[] = [
+    {
+      id: 'bl1',
+      bookId: 'b1',
+      borrowerId: 's1',
+      borrowerType: 'Student',
+      borrowerName: 'Amina Mwangi',
+      dateIssued: '01/11/2025',
+      dateDue: '15/11/2025',
+      status: 'issued'
+    },
+    {
+      id: 'bl2',
+      bookId: 'b6',
+      borrowerId: 's4',
+      borrowerType: 'Student',
+      borrowerName: 'Daniel Kamau',
+      dateIssued: '05/11/2025',
+      dateDue: '19/11/2025',
+      status: 'issued'
+    },
+    {
+      id: 'bl3',
+      bookId: 'b4',
+      borrowerId: 't2',
+      borrowerType: 'Teacher',
+      borrowerName: 'Ms. Grace Wanjiru',
+      dateIssued: '28/10/2025',
+      dateDue: '11/11/2025',
+      status: 'overdue',
+      fine: 50
+    },
+    {
+      id: 'bl4',
+      bookId: 'b2',
+      borrowerId: 's1',
+      borrowerType: 'Student',
+      borrowerName: 'Amina Mwangi',
+      dateIssued: '20/10/2025',
+      dateDue: '03/11/2025',
+      dateReturned: '02/11/2025',
+      status: 'returned'
+    },
+    {
+      id: 'bl5',
+      bookId: 'b3',
+      borrowerId: 's2',
+      borrowerType: 'Student',
+      borrowerName: 'Brian Omondi',
+      dateIssued: '10/11/2025',
+      dateDue: '24/11/2025',
+      status: 'issued'
+    }
+  ];
+
+  return { students, teachers, classes, lessonPlans, timetable, exams, fees, staff, messages, events, reports, books, bookLoans };
 };
 
 // ==================== CONTEXTS ====================
@@ -718,32 +715,23 @@ const ThemeContext = createContext<{
 const NavigationContext = createContext<{
   currentPage: Page;
   navigate: (page: Page) => void;
+  selectedLevel: EducationLevel | 'All';
+  setSelectedLevel: (level: EducationLevel | 'All') => void;
 } | null>(null);
 
 const ToastContext = createContext<{
-  showToast: (message: string, type?: "success" | "error" | "info") => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 } | null>(null);
 
 // ==================== PROVIDERS ====================
 function AppProviders({ children }: { children: React.ReactNode }) {
-  const [auth, setAuth] = useLocalStorage<AuthState>("sms_auth", {
-    isAuthenticated: false,
-    role: null,
-    userId: null,
-  });
-  const [data, setData] = useLocalStorage<DataState>(
-    "sms_data",
-    generateSeedData()
-  );
-  const [isDark, setIsDark] = useLocalStorage("sms_theme", false);
-  const [showOnboarding, setShowOnboarding] = useLocalStorage(
-    "sms_onboarding",
-    true
-  );
-  const [currentPage, setCurrentPage] = useState<Page>("login");
-  const [toasts, setToasts] = useState<
-    Array<{ id: number; message: string; type: "success" | "error" | "info" }>
-  >([]);
+   const [auth, setAuth] = useLocalStorage<AuthState>('sms_auth', { isAuthenticated: false, role: null, userId: null });
+  const [data, setData] = useLocalStorage<DataState>('sms_data', generateSeedData());
+  const [isDark, setIsDark] = useLocalStorage('sms_theme', false);
+  const [showOnboarding, setShowOnboarding] = useLocalStorage('sms_onboarding', true);
+  const [currentPage, setCurrentPage] = useState<Page>('login');
+  const [selectedLevel, setSelectedLevel] = useState<EducationLevel | 'All'>('All');
+  const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: 'success' | 'error' | 'info' }>>([]);
 
   const login = (role: Role, userId?: string) => {
     setAuth({ isAuthenticated: true, role, userId: userId || null });
@@ -803,14 +791,12 @@ function AppProviders({ children }: { children: React.ReactNode }) {
   }, [auth.isAuthenticated, currentPage]);
 
   return (
-    <AuthContext.Provider value={{ auth, login, logout }}>
+     <AuthContext.Provider value={{ auth, login, logout }}>
       <DataContext.Provider value={{ data, updateData, resetData }}>
         <ThemeContext.Provider value={{ isDark, toggleTheme }}>
-          <NavigationContext.Provider value={{ currentPage, navigate }}>
+          <NavigationContext.Provider value={{ currentPage, navigate, selectedLevel, setSelectedLevel }}>
             <ToastContext.Provider value={{ showToast }}>
-              {showOnboarding && (
-                <OnboardingModal onClose={() => setShowOnboarding(false)} />
-              )}
+              {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
               <ToastContainer toasts={toasts} />
               {children}
             </ToastContext.Provider>
@@ -824,32 +810,31 @@ function AppProviders({ children }: { children: React.ReactNode }) {
 // ==================== CUSTOM HOOKS ====================
 function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthContext");
+  if (!context) throw new Error('useAuth must be used within AuthContext');
   return context;
 }
 
 function useData() {
   const context = useContext(DataContext);
-  if (!context) throw new Error("useData must be used within DataContext");
+  if (!context) throw new Error('useData must be used within DataContext');
   return context;
 }
 
 function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) throw new Error("useTheme must be used within ThemeContext");
+  if (!context) throw new Error('useTheme must be used within ThemeContext');
   return context;
 }
 
 function useNavigation() {
   const context = useContext(NavigationContext);
-  if (!context)
-    throw new Error("useNavigation must be used within NavigationContext");
+  if (!context) throw new Error('useNavigation must be used within NavigationContext');
   return context;
 }
 
 function useToast() {
   const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used within ToastContext");
+  if (!context) throw new Error('useToast must be used within ToastContext');
   return context;
 }
 
@@ -942,6 +927,31 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function LevelFilter() {
+  const { selectedLevel, setSelectedLevel } = useNavigation();
+  const levels: Array<EducationLevel | 'All'> = ['All', 'Pre-Primary', 'Lower Primary', 'Upper Primary', 'Junior Secondary', 'Senior Secondary'];
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 mb-6">
+      <div className="flex flex-wrap gap-2">
+        {levels.map(level => (
+          <button
+            key={level}
+            onClick={() => setSelectedLevel(level)}
+            className={`px-4 py-2 rounded-lg transition text-sm font-medium ${
+              selectedLevel === level
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            {level}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Navbar() {
   const { auth, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
@@ -950,33 +960,28 @@ function Navbar() {
   const { resetData } = useData();
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-lg">
+    <nav className="bg-white dark:bg-gray-800 shadow-lg fixed w-full z-1">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <button
-              onClick={() =>
-                navigate(auth.isAuthenticated ? "dashboard" : "login")
-              }
-              className="flex items-center"
-            >
-              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                Elimu Smart SMS
-              </span>
+            <button onClick={() => navigate(auth.isAuthenticated ? 'dashboard' : 'login')} className="flex items-center">
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">Elimu Smart  SMS</span>
+              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">Kenya</span>
             </button>
           </div>
-
+          
           <div className="flex items-center space-x-4">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              {isDark ? "☀️" : "🌙"}
+              {isDark ? '☀️' : '🌙'}
             </button>
-
+            
             {auth.isAuthenticated && (
               <>
-                <span className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
                   {auth.role}
                 </span>
                 <button
@@ -988,7 +993,7 @@ function Navbar() {
                 <button
                   onClick={() => {
                     logout();
-                    navigate("login");
+                    navigate('login');
                   }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
                 >
@@ -999,16 +1004,14 @@ function Navbar() {
           </div>
         </div>
       </div>
-
+      
       {showDevMenu && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="absolute right-4 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 z-50 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
-            Developer Tools
-          </h3>
+          <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Developer Tools</h3>
           <button
             onClick={() => {
               resetData();
@@ -1020,13 +1023,13 @@ function Navbar() {
           </button>
           <button
             onClick={() => {
-              const dataStr = localStorage.getItem("sms_data");
+              const dataStr = localStorage.getItem('sms_data');
               if (dataStr) {
-                const blob = new Blob([dataStr], { type: "application/json" });
+                const blob = new Blob([dataStr], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
+                const a = document.createElement('a');
                 a.href = url;
-                a.download = "sms_data.json";
+                a.download = 'sms_data.json';
                 a.click();
               }
             }}
@@ -1054,6 +1057,7 @@ function Sidebar() {
         ...base,
         { page: "students" as Page, label: "Students", icon: "👨‍🎓" },
         { page: "academics" as Page, label: "Academics", icon: "📚" },
+        { page: 'library' as Page, label: 'Library', icon: '📖' },
         { page: "finance" as Page, label: "Finance", icon: "💰" },
         { page: "hr" as Page, label: "HR & Staff", icon: "👥" },
         { page: "reports" as Page, label: "Reports", icon: "📈" },
@@ -1067,6 +1071,7 @@ function Sidebar() {
         ...base,
         { page: "assessments" as Page, label: "Assessments", icon: "✍️" },
         { page: "lesson-plans" as Page, label: "Lesson Plans", icon: "📝" },
+        { page: 'library' as Page, label: 'Library', icon: '📖' },
         { page: "attendance" as Page, label: "Attendance", icon: "✅" },
         { page: "timetable" as Page, label: "Timetable", icon: "🕐" },
         { page: "messages" as Page, label: "Messages", icon: "💬" },
@@ -1077,6 +1082,7 @@ function Sidebar() {
       return [
         ...base,
         { page: "portal" as Page, label: "Portal", icon: "🏠" },
+        { page: 'library' as Page, label: 'Library', icon: '📖' },
         { page: "cbc-reports" as Page, label: "Elimu Smart Reports", icon: "📋" },
         { page: "messages" as Page, label: "Messages", icon: "💬" },
         { page: "calendar" as Page, label: "Calendar", icon: "📅" },
@@ -1089,7 +1095,7 @@ function Sidebar() {
   const menuItems = getMenuItems();
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg min-h-screen p-4">
+    <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg min-h-screen p-4 pt-20 fixed">
       <nav className="space-y-2">
         {menuItems.map((item) => (
           <button
@@ -1195,6 +1201,13 @@ function Table({
   data: any[];
   onRowClick?: (row: any) => void;
 }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+        No data available
+      </div>
+    );
+  }
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -1238,6 +1251,548 @@ function Table({
 }
 
 // ==================== PAGES ====================
+
+
+// ==================== LIBRARY PAGE ====================
+function LibraryPage() {
+  const { data, updateData } = useData();
+  const { showToast } = useToast();
+  const { auth } = useAuth();
+  const { selectedLevel } = useNavigation();
+  const [activeTab, setActiveTab] = useState<'catalog' | 'loans' | 'overdue'>('catalog');
+  const [showBookModal, setShowBookModal] = useState(false);
+  const [showLoanModal, setShowLoanModal] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [bookFormData, setBookFormData] = useState({
+    title: '',
+    author: '',
+    isbn: '',
+    category: 'Textbook',
+    publisher: '',
+    yearPublished: '',
+    quantity: '1',
+    description: ''
+  });
+  const [loanFormData, setLoanFormData] = useState({
+    borrowerType: 'Student',
+    borrowerId: '',
+    borrowerName: '',
+    dateDue: ''
+  });
+
+  const filteredBooks = data.books.filter(book => {
+    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         book.author.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'All' || book.category === categoryFilter;
+    const matchesLevel = selectedLevel === 'All' || book.educationLevel.includes(selectedLevel);
+    return matchesSearch && matchesCategory && matchesLevel;
+  });
+
+  const activeLoans = data.bookLoans.filter(loan => loan.status === 'issued' || loan.status === 'overdue');
+  const overdueLoans = data.bookLoans.filter(loan => loan.status === 'overdue');
+  
+  const categories = ['All', ...Array.from(new Set(data.books.map(b => b.category)))];
+
+  const handleIssueBook = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBook || selectedBook.available === 0) {
+      showToast('Book not available', 'error');
+      return;
+    }
+
+    const newLoan: BookLoan = {
+      id: `bl${data.bookLoans.length + 1}`,
+      bookId: selectedBook.id,
+      borrowerId: loanFormData.borrowerId,
+      borrowerType: loanFormData.borrowerType as 'Student' | 'Teacher' | 'Staff',
+      borrowerName: loanFormData.borrowerName,
+      dateIssued: new Date().toLocaleDateString('en-GB'),
+      dateDue: loanFormData.dateDue,
+      status: 'issued'
+    };
+
+    updateData('bookLoans', [...data.bookLoans, newLoan]);
+    updateData('books', data.books.map(b => 
+      b.id === selectedBook.id ? { ...b, available: b.available - 1 } : b
+    ));
+
+    showToast('Book issued successfully', 'success');
+    setShowLoanModal(false);
+    setSelectedBook(null);
+    setLoanFormData({
+      borrowerType: 'Student',
+      borrowerId: '',
+      borrowerName: '',
+      dateDue: ''
+    });
+  };
+
+  const handleReturnBook = (loanId: string) => {
+    const loan = data.bookLoans.find(l => l.id === loanId);
+    if (!loan) return;
+
+    updateData('bookLoans', data.bookLoans.map(l =>
+      l.id === loanId ? { ...l, status: 'returned' as const, dateReturned: new Date().toLocaleDateString('en-GB') } : l
+    ));
+
+    updateData('books', data.books.map(b =>
+      b.id === loan.bookId ? { ...b, available: b.available + 1 } : b
+    ));
+
+    showToast('Book returned successfully', 'success');
+  };
+
+  const handleAddBook = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newBook: Book = {
+      id: `b${data.books.length + 1}`,
+      title: bookFormData.title,
+      author: bookFormData.author,
+      isbn: bookFormData.isbn,
+      category: bookFormData.category,
+      educationLevel: ['Upper Primary'],
+      quantity: parseInt(bookFormData.quantity),
+      available: parseInt(bookFormData.quantity),
+      publisher: bookFormData.publisher,
+      yearPublished: bookFormData.yearPublished,
+      description: bookFormData.description,
+      coverImage: '📚'
+    };
+
+    updateData('books', [...data.books, newBook]);
+    showToast('Book added to catalog', 'success');
+    setShowBookModal(false);
+    setBookFormData({
+      title: '',
+      author: '',
+      isbn: '',
+      category: 'Textbook',
+      publisher: '',
+      yearPublished: '',
+      quantity: '1',
+      description: ''
+    });
+  };
+
+  const bookStats = [
+    { title: 'Total Books', value: data.books.reduce((sum, b) => sum + b.quantity, 0), icon: '📚', color: 'bg-blue-600' },
+    { title: 'Available', value: data.books.reduce((sum, b) => sum + b.available, 0), icon: '✅', color: 'bg-green-600' },
+    { title: 'On Loan', value: activeLoans.length, icon: '📖', color: 'bg-yellow-600' },
+    { title: 'Overdue', value: overdueLoans.length, icon: '⏰', color: 'bg-red-600' }
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Library Management</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Manage books, track loans, and monitor library operations</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {bookStats.map(stat => (
+          <DashboardCard key={stat.title} {...stat} />
+        ))}
+      </div>
+
+      <div className="flex space-x-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab('catalog')}
+          className={`px-4 py-2 font-medium transition ${
+            activeTab === 'catalog'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          }`}
+        >
+          Book Catalog
+        </button>
+        <button
+          onClick={() => setActiveTab('loans')}
+          className={`px-4 py-2 font-medium transition ${
+            activeTab === 'loans'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          }`}
+        >
+          Active Loans ({activeLoans.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('overdue')}
+          className={`px-4 py-2 font-medium transition ${
+            activeTab === 'overdue'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          }`}
+        >
+          Overdue ({overdueLoans.length})
+        </button>
+      </div>
+
+      {activeTab === 'catalog' && (
+        <>
+          <div className="flex flex-col md:flex-row gap-4">
+            <input
+              type="text"
+              placeholder="Search books by title or author..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            {(auth.role === 'Admin' || auth.role === 'Teacher') && (
+              <button
+                onClick={() => setShowBookModal(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition whitespace-nowrap"
+              >
+                + Add Book
+              </button>
+            )}
+          </div>
+
+          <LevelFilter />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredBooks.map(book => (
+              <motion.div
+                key={book.id}
+                whileHover={{ scale: 1.02 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4"
+              >
+                <div className="text-6xl text-center mb-3">{book.coverImage}</div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-1 line-clamp-2 min-h-[56px]">{book.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{book.author}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded">
+                    {book.category}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mb-2 line-clamp-2 min-h-[32px]">
+                  {book.description || 'No description available'}
+                </p>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Available: <span className="font-bold text-gray-900 dark:text-white">{book.available}/{book.quantity}</span>
+                  </span>
+                  {book.available > 0 ? (
+                    <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">In Stock</span>
+                  ) : (
+                    <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Out of Stock</span>
+                  )}
+                </div>
+                {(auth.role === 'Admin' || auth.role === 'Teacher') && book.available > 0 && (
+                  <button
+                    onClick={() => {
+                      setSelectedBook(book);
+                      setShowLoanModal(true);
+                    }}
+                    className="w-full mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition text-sm"
+                  >
+                    Issue Book
+                  </button>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {filteredBooks.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400">No books found matching your search</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'loans' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <Table
+            columns={[
+              {
+                key: 'bookId',
+                label: 'Book Title',
+                render: (id: string) => {
+                  const book = data.books.find(b => b.id === id);
+                  return book ? book.title : 'Unknown';
+                }
+              },
+              { key: 'borrowerName', label: 'Borrower' },
+              { key: 'borrowerType', label: 'Type' },
+              { key: 'dateIssued', label: 'Issued' },
+              { key: 'dateDue', label: 'Due Date' },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (status: string) => (
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    status === 'issued' ? 'bg-blue-100 text-blue-800' :
+                    status === 'overdue' ? 'bg-red-100 text-red-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </span>
+                )
+              },
+              {
+                key: 'actions',
+                label: 'Actions',
+                render: (_: any, row: BookLoan) => {
+                  if (row.status !== 'returned' && (auth.role === 'Admin' || auth.role === 'Teacher')) {
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReturnBook(row.id);
+                        }}
+                        className="text-green-600 hover:text-green-800 font-medium"
+                      >
+                        Return
+                      </button>
+                    );
+                  }
+                  return null;
+                }
+              }
+            ]}
+            data={activeLoans}
+          />
+        </div>
+      )}
+
+      {activeTab === 'overdue' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          {overdueLoans.length > 0 ? (
+            <Table
+              columns={[
+                {
+                  key: 'bookId',
+                  label: 'Book Title',
+                  render: (id: string) => {
+                    const book = data.books.find(b => b.id === id);
+                    return book ? book.title : 'Unknown';
+                  }
+                },
+                { key: 'borrowerName', label: 'Borrower' },
+                { key: 'borrowerType', label: 'Type' },
+                { key: 'dateIssued', label: 'Issued' },
+                { key: 'dateDue', label: 'Due Date' },
+                {
+                  key: 'fine',
+                  label: 'Fine',
+                  render: (fine: number | undefined) => fine ? `KES ${fine.toLocaleString()}` : 'KES 0'
+                },
+                {
+                  key: 'actions',
+                  label: 'Actions',
+                  render: (_: any, row: BookLoan) => {
+                    if (auth.role === 'Admin' || auth.role === 'Teacher') {
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReturnBook(row.id);
+                          }}
+                          className="text-green-600 hover:text-green-800 font-medium"
+                        >
+                          Return
+                        </button>
+                      );
+                    }
+                    return null;
+                  }
+                }
+              ]}
+              data={overdueLoans}
+            />
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400">✅ No overdue books - Great job!</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Book Modal */}
+      <Modal isOpen={showBookModal} onClose={() => {
+        setShowBookModal(false);
+        setBookFormData({
+          title: '',
+          author: '',
+          isbn: '',
+          category: 'Textbook',
+          publisher: '',
+          yearPublished: '',
+          quantity: '1',
+          description: ''
+        });
+      }} title="Add New Book">
+        <form onSubmit={handleAddBook} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+              <input 
+                value={bookFormData.title}
+                onChange={e => setBookFormData({...bookFormData, title: e.target.value})}
+                required 
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Author *</label>
+              <input 
+                value={bookFormData.author}
+                onChange={e => setBookFormData({...bookFormData, author: e.target.value})}
+                required 
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ISBN *</label>
+              <input 
+                value={bookFormData.isbn}
+                onChange={e => setBookFormData({...bookFormData, isbn: e.target.value})}
+                required 
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category *</label>
+              <select 
+                value={bookFormData.category}
+                onChange={e => setBookFormData({...bookFormData, category: e.target.value})}
+                required 
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                <option value="Textbook">Textbook</option>
+                <option value="Reference">Reference</option>
+                <option value="Literature">Literature</option>
+                <option value="Fiction">Fiction</option>
+                <option value="Language">Language</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Publisher</label>
+              <input 
+                value={bookFormData.publisher}
+                onChange={e => setBookFormData({...bookFormData, publisher: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year Published</label>
+              <input 
+                value={bookFormData.yearPublished}
+                onChange={e => setBookFormData({...bookFormData, yearPublished: e.target.value})}
+                type="number" 
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity *</label>
+            <input 
+              value={bookFormData.quantity}
+              onChange={e => setBookFormData({...bookFormData, quantity: e.target.value})}
+              type="number" 
+              required 
+              min="1"
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+            <textarea 
+              value={bookFormData.description}
+              onChange={e => setBookFormData({...bookFormData, description: e.target.value})}
+              rows={3} 
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+            />
+          </div>
+          <button type="submit" className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+            Add Book to Library
+          </button>
+        </form>
+      </Modal>
+
+      {/* Issue Book Modal */}
+      <Modal isOpen={showLoanModal} onClose={() => {
+        setShowLoanModal(false);
+        setSelectedBook(null);
+        setLoanFormData({
+          borrowerType: 'Student',
+          borrowerId: '',
+          borrowerName: '',
+          dateDue: ''
+        });
+      }} title={`Issue Book: ${selectedBook?.title || ''}`}>
+        <form onSubmit={handleIssueBook} className="space-y-4">
+          <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg mb-4">
+            <p className="text-sm text-blue-900 dark:text-blue-100">
+              <strong>Available copies:</strong> {selectedBook?.available || 0} out of {selectedBook?.quantity || 0}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Borrower Type *</label>
+            <select 
+              value={loanFormData.borrowerType}
+              onChange={e => setLoanFormData({...loanFormData, borrowerType: e.target.value})}
+              required 
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+            >
+              <option value="Student">Student</option>
+              <option value="Teacher">Teacher</option>
+              <option value="Staff">Staff</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Borrower ID *</label>
+            <input 
+              value={loanFormData.borrowerId}
+              onChange={e => setLoanFormData({...loanFormData, borrowerId: e.target.value})}
+              required 
+              placeholder="e.g., s1, t1, st1"
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Borrower Name *</label>
+            <input 
+              value={loanFormData.borrowerName}
+              onChange={e => setLoanFormData({...loanFormData, borrowerName: e.target.value})}
+              required 
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Date (DD/MM/YYYY) *</label>
+            <input 
+              value={loanFormData.dateDue}
+              onChange={e => setLoanFormData({...loanFormData, dateDue: e.target.value})}
+              required 
+              placeholder="30/11/2025" 
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+            />
+          </div>
+          <button type="submit" className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+            Issue Book
+          </button>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
 
 function LoginPage() {
   const { login } = useAuth();
@@ -1301,6 +1856,24 @@ function LoginPage() {
 function AdminDashboard() {
   const { data } = useData();
 
+  const { selectedLevel } = useNavigation();
+
+  const filteredStudents = selectedLevel === 'All' 
+    ? data.students 
+    : data.students.filter(s => s.educationLevel === selectedLevel);
+
+  const filteredClasses = selectedLevel === 'All'
+    ? data.classes
+    : data.classes.filter(c => c.educationLevel === selectedLevel);
+
+  const levelStats = useMemo(() => {
+    const levels: EducationLevel[] = ['Pre-Primary', 'Lower Primary', 'Upper Primary', 'Junior Secondary', 'Senior Secondary'];
+    return levels.map(level => ({
+      level,
+      count: data.students.filter(s => s.educationLevel === level).length
+    }));
+  }, [data.students]);
+
   const stats = [
     {
       title: "Total Students",
@@ -1308,6 +1881,7 @@ function AdminDashboard() {
       icon: "👨‍🎓",
       color: "bg-blue-600",
     },
+    { title: 'Total Classes', value: filteredClasses.length, icon: '🏫', color: 'bg-green-600' },
     {
       title: "Total Teachers",
       value: data.teachers.length,
@@ -1342,10 +1916,38 @@ function AdminDashboard() {
         Admin Dashboard
       </h1>
 
+      <LevelFilter />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
           <DashboardCard key={stat.title} {...stat} />
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Students by Education Level</h2>
+          <div className="space-y-3">
+            {levelStats.map(stat => (
+              <div key={stat.level} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{stat.level}</span>
+                <span className="text-lg font-bold text-blue-600">{stat.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Classes Overview</h2>
+          <div className="space-y-3">
+            {filteredClasses.slice(0, 5).map(cls => (
+              <div key={cls.id} className="p-3 border-l-4 border-blue-600 bg-gray-50 dark:bg-gray-700">
+                <p className="font-medium text-gray-900 dark:text-white">{cls.name}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{cls.educationLevel} · {cls.students.length} students</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1645,77 +2247,108 @@ function PortalPage() {
 function StudentsPage() {
   const { data, updateData } = useData();
   const { showToast } = useToast();
+  const { selectedLevel } = useNavigation();
   const [showModal, setShowModal] = useState(false);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
-    name: "",
-    dob: "",
-    parentContact: "",
-    email: "",
-    classId: data.classes[0]?.id || "",
+    name: '',
+    dob: '',
+    parentContact: '',
+    email: '',
+    classId: data.classes[0]?.id || '',
+    grade: 'Grade 1',
+    stream: 'A',
+    educationLevel: 'Lower Primary' as EducationLevel,
+    subjects: [] as string[],
+    optionalSubjects: [] as string[],
+    careerPathway: null as CareerPathway
   });
 
-  const filteredStudents = data.students.filter((s) =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = data.students.filter(s =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (selectedLevel === 'All' || s.educationLevel === selectedLevel)
   );
+
+  const getAvailableGrades = (level: EducationLevel) => {
+    const curr = CURRICULUM[level];
+    if (!curr || !curr.grades) return [];
+    return curr.grades;
+  };
+
+  const getAvailableSubjects = (level: EducationLevel) => {
+    const curr = CURRICULUM[level];
+    if (!curr) return [];
+    if ('subjects' in curr) return curr.subjects || [];
+    if ('coreSubjects' in curr) return curr.coreSubjects || [];
+    return [];
+  };
+
+  const getOptionalSubjects = (level: EducationLevel) => {
+    const curr = CURRICULUM[level];
+    if (!curr) return [];
+    if ('optionalSubjects' in curr) return curr.optionalSubjects || [];
+    if ('optional' in curr) return curr.optional || [];
+    return [];
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editStudent) {
-      updateData(
-        "students",
-        data.students.map((s) =>
-          s.id === editStudent.id
-            ? {
-                ...s,
-                name: formData.name,
-                classId: formData.classId,
-                bioData: {
-                  ...s.bioData,
-                  dob: formData.dob,
-                  parentContact: formData.parentContact,
-                  email: formData.email,
-                },
-              }
-            : s
-        )
-      );
-      showToast("Student updated", "success");
+      updateData('students', data.students.map(s =>
+        s.id === editStudent.id ? { 
+          ...s, 
+          name: formData.name,
+          grade: formData.grade,
+          stream: formData.stream,
+          educationLevel: formData.educationLevel,
+          subjects: formData.subjects,
+          optionalSubjects: formData.optionalSubjects,
+          careerPathway: formData.careerPathway,
+          classId: formData.classId,
+          bioData: { 
+            ...s.bioData, 
+            dob: formData.dob,
+            parentContact: formData.parentContact,
+            email: formData.email
+          } 
+        } : s
+      ));
+      showToast('Student updated', 'success');
     } else {
       const newStudent: Student = {
         id: `s${data.students.length + 1}`,
         name: formData.name,
-        bioData: {
-          dob: formData.dob,
-          parentContact: formData.parentContact,
-          email: formData.email,
-        },
+        grade: formData.grade,
+        stream: formData.stream,
+        educationLevel: formData.educationLevel,
+        subjects: formData.subjects,
+        optionalSubjects: formData.optionalSubjects,
+        careerPathway: formData.careerPathway,
+        bioData: { dob: formData.dob, parentContact: formData.parentContact, email: formData.email },
         classId: formData.classId,
-        competencies: {
-          criticalThinking: 0,
-          creativity: 0,
-          communication: 0,
-          collaboration: 0,
-          citizenship: 0,
-          digitalLiteracy: 0,
-          learningToLearn: 0,
-        },
+        competencies: { criticalThinking: 0, creativity: 0, communication: 0, collaboration: 0, citizenship: 0, digitalLiteracy: 0, learningToLearn: 0 },
         attendance: [],
         fees: { balance: 0, payments: [] },
         messages: [],
-        extracurriculars: [],
+        extracurriculars: []
       };
-      updateData("students", [...data.students, newStudent]);
-      showToast("Student added", "success");
+      updateData('students', [...data.students, newStudent]);
+      showToast('Student added', 'success');
     }
     setShowModal(false);
     setFormData({
-      name: "",
-      dob: "",
-      parentContact: "",
-      email: "",
-      classId: data.classes[0]?.id || "",
+      name: '',
+      dob: '',
+      parentContact: '',
+      email: '',
+      classId: data.classes[0]?.id || '',
+      grade: 'Grade 1',
+      stream: 'A',
+      educationLevel: 'Lower Primary',
+      subjects: [],
+      optionalSubjects: [],
+      careerPathway: null
     });
     setEditStudent(null);
   };
@@ -1726,77 +2359,73 @@ function StudentsPage() {
       name: student.name,
       dob: student.bioData.dob,
       parentContact: student.bioData.parentContact,
-      email: student.bioData.email || "",
+      email: student.bioData.email || '',
       classId: student.classId,
+      grade: student.grade,
+      stream: student.stream,
+      educationLevel: student.educationLevel,
+      subjects: student.subjects,
+      optionalSubjects: student.optionalSubjects || [],
+      careerPathway: student.careerPathway || null
     });
     setShowModal(true);
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this student?")) {
-      updateData(
-        "students",
-        data.students.filter((s) => s.id !== id)
-      );
-      showToast("Student deleted", "success");
+    if (confirm('Are you sure you want to delete this student?')) {
+      updateData('students', data.students.filter(s => s.id !== id));
+      showToast('Student deleted', 'success');
     }
   };
 
   const columns = [
-    { key: "name", label: "Name" },
-    {
-      key: "classId",
-      label: "Class",
-      render: (val: string) =>
-        data.classes.find((c) => c.id === val)?.name || val,
+    { key: 'name', label: 'Name' },
+    { 
+      key: 'grade', 
+      label: 'Class', 
+      render: (val: string, row: Student) => `${val} ${row.stream}` 
     },
-    {
-      key: "bioData",
-      label: "Parent Contact",
-      render: (val: any) => val.parentContact,
+    { key: 'educationLevel', label: 'Level' },
+    { 
+      key: 'subjects', 
+      label: 'Subjects', 
+      render: (val: string[]) => {
+        if (!val || !Array.isArray(val)) return '-';
+        return val.slice(0, 2).join(', ') + (val.length > 2 ? '...' : '');
+      }
     },
+    { key: 'fees', label: 'Fee Balance', render: (val: any) => `KES ${val.balance.toLocaleString()}` },
     {
-      key: "fees",
-      label: "Fee Balance",
-      render: (val: any) => `KES ${val.balance.toLocaleString()}`,
-    },
-    {
-      key: "actions",
-      label: "Actions",
+      key: 'actions',
+      label: 'Actions',
       render: (_: any, row: Student) => (
         <div className="flex space-x-2">
-          <button
-            onClick={() => handleEdit(row)}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => handleDelete(row.id)}
-            className="text-red-600 hover:text-red-800"
-          >
-            Delete
-          </button>
+          <button onClick={() => handleEdit(row)} className="text-blue-600 hover:text-blue-800">Edit</button>
+          <button onClick={() => handleDelete(row.id)} className="text-red-600 hover:text-red-800">Delete</button>
         </div>
-      ),
-    },
+      )
+    }
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Students Management
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Students Management</h1>
         <button
           onClick={() => {
             setEditStudent(null);
             setFormData({
-              name: "",
-              dob: "",
-              parentContact: "",
-              email: "",
-              classId: data.classes[0]?.id || "",
+              name: '',
+              dob: '',
+              parentContact: '',
+              email: '',
+              classId: data.classes[0]?.id || '',
+              grade: 'Grade 1',
+              stream: 'A',
+              educationLevel: 'Lower Primary',
+              subjects: [],
+              optionalSubjects: [],
+              careerPathway: null
             });
             setShowModal(true);
           }}
@@ -1806,11 +2435,13 @@ function StudentsPage() {
         </button>
       </div>
 
+      <LevelFilter />
+
       <input
         type="text"
         placeholder="Search students..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={e => setSearchTerm(e.target.value)}
         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
       />
 
@@ -1818,94 +2449,173 @@ function StudentsPage() {
         <Table columns={columns} data={filteredStudents} />
       </div>
 
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editStudent ? "Edit Student" : "Add New Student"}
-      >
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editStudent ? 'Edit Student' : 'Add New Student'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Name
-            </label>
-            <input
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+            <input 
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={e => setFormData({...formData, name: e.target.value})}
               required
-              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
             />
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Date of Birth
-              </label>
-              <input
-                value={formData.dob}
-                onChange={(e) =>
-                  setFormData({ ...formData, dob: e.target.value })
-                }
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Education Level</label>
+              <select 
+                value={formData.educationLevel}
+                onChange={e => {
+                  const level = e.target.value as EducationLevel;
+                  setFormData({
+                    ...formData, 
+                    educationLevel: level,
+                    grade: CURRICULUM[level].grades[0],
+                    subjects: [],
+                    optionalSubjects: []
+                  });
+                }}
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-                placeholder="DD/MM/YYYY"
+              >
+                {Object.keys(CURRICULUM).map(level => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Grade</label>
+              <select 
+                value={formData.grade}
+                onChange={e => setFormData({...formData, grade: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                {getAvailableGrades(formData.educationLevel).map(grade => (
+                  <option key={grade} value={grade}>{grade}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream</label>
+              <select 
+                value={formData.stream}
+                onChange={e => setFormData({...formData, stream: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                {['A', 'B', 'C', 'D'].map(stream => (
+                  <option key={stream} value={stream}>{stream}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
+              <input 
+                value={formData.dob}
+                onChange={e => setFormData({...formData, dob: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
+                placeholder="DD/MM/YYYY" 
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parent Contact</label>
+              <input 
+                value={formData.parentContact}
+                onChange={e => setFormData({...formData, parentContact: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Parent Contact
-              </label>
-              <input
-                value={formData.parentContact}
-                onChange={(e) =>
-                  setFormData({ ...formData, parentContact: e.target.value })
-                }
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parent Email</label>
+              <input 
+                type="email"
+                value={formData.email}
+                onChange={e => setFormData({...formData, email: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white" 
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Parent Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Class
-            </label>
-            <select
-              value={formData.classId}
-              onChange={(e) =>
-                setFormData({ ...formData, classId: e.target.value })
-              }
-              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-            >
-              {data.classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subjects</label>
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg dark:bg-gray-700">
+              {getAvailableSubjects(formData.educationLevel).map(subject => (
+                <label key={subject} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.subjects.includes(subject)}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setFormData({...formData, subjects: [...formData.subjects, subject]});
+                      } else {
+                        setFormData({...formData, subjects: formData.subjects.filter(s => s !== subject)});
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{subject}</span>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
-          <button
-            type="submit"
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
-          >
-            {editStudent ? "Update" : "Add"} Student
+
+          {getOptionalSubjects(formData.educationLevel).length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Optional Subjects</label>
+              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg dark:bg-gray-700">
+                {getOptionalSubjects(formData.educationLevel).map(subject => (
+                  <label key={subject} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.optionalSubjects.includes(subject)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setFormData({...formData, optionalSubjects: [...formData.optionalSubjects, subject]});
+                        } else {
+                          setFormData({...formData, optionalSubjects: formData.optionalSubjects.filter(s => s !== subject)});
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{subject}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {formData.educationLevel === 'Senior Secondary' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Career Pathway</label>
+              <select 
+                value={formData.careerPathway || ''}
+                onChange={e => setFormData({...formData, careerPathway: e.target.value as CareerPathway})}
+                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select Pathway</option>
+                <option value="Arts and Sports Science">Arts and Sports Science</option>
+                <option value="STEM">STEM</option>
+                <option value="Social Sciences">Social Sciences</option>
+              </select>
+            </div>
+          )}
+
+          <button type="submit" className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+            {editStudent ? 'Update' : 'Add'} Student
           </button>
         </form>
       </Modal>
     </div>
   );
 }
+
 
 function AssessmentsPage() {
   const { data, updateData } = useData();
@@ -2209,11 +2919,13 @@ function LessonPlansPage() {
   const [formData, setFormData] = useState({
     title: "",
     subject: data.teachers[0]?.subjects[0] || "",
+    educationLevel: data.classes[0]?.educationLevel[0] || " ",
     scheme: "",
     alignedCBC: "true",
   });
 
   const teacher = data.teachers[0];
+  const educationL = data.classes[0];
   const myPlans = data.lessonPlans.filter((lp) => lp.teacherId === teacher.id);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -2223,6 +2935,7 @@ function LessonPlansPage() {
       title: formData.title,
       subject: formData.subject,
       scheme: formData.scheme,
+      educationLevel: formData.educationLevel as EducationLevel,
       teacherId: teacher.id,
       createdAt: new Date().toLocaleDateString("en-GB"),
       sharedWith: [],
@@ -2234,6 +2947,7 @@ function LessonPlansPage() {
     setFormData({
       title: "",
       subject: teacher.subjects[0],
+      educationLevel: educationL.educationLevel[0],
       scheme: "",
       alignedCBC: "true",
     });
@@ -3568,89 +4282,97 @@ function TimetablePage() {
 
 function AcademicsPage() {
   const { data } = useData();
+  const { selectedLevel } = useNavigation();
+
+  const filteredClasses = selectedLevel === 'All'
+    ? data.classes
+    : data.classes.filter(c => c.educationLevel === selectedLevel);
+
+  const filteredSubjects = filteredClasses.reduce((sum, cls) => 
+    sum + (cls.subjects || []).length, 
+  0);
+
+  
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-        Academic Management
-      </h1>
-
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Academic Management</h1>
+      
+      <LevelFilter />
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <DashboardCard
-          title="Classes"
-          value={data.classes.length}
-          icon="🏫"
-          color="bg-blue-600"
-        />
-        <DashboardCard
-          title="Subjects"
-          value="12"
-          icon="📚"
-          color="bg-green-600"
-        />
-        <DashboardCard
-          title="Exams Scheduled"
-          value={data.exams.length}
-          icon="📝"
-          color="bg-purple-600"
-        />
+        <DashboardCard title="Classes" value={filteredClasses.length} icon="🏫" color="bg-blue-600" />
+        <DashboardCard title="Subjects" value={filteredSubjects} icon="📚" color="bg-green-600" />
+        <DashboardCard title="Exams Scheduled" value={data.exams.length} icon="📝" color="bg-purple-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-            Classes Overview
-          </h2>
-          <div className="space-y-3">
-            {data.classes.map((cls) => (
-              <div
-                key={cls.id}
-                className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">
-                      {cls.name}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {cls.students.length} students · Teacher:{" "}
-                      {data.teachers.find((t) => t.id === cls.teacherId)?.name}
-                    </p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Classes by Education Level</h2>
+        <div className="space-y-3">
+          {filteredClasses.length > 0 ? filteredClasses.map(cls => (
+            <div key={cls.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg">{cls.name}</p>
+                    <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                      {cls.educationLevel}
+                    </span>
                   </div>
-                  <span className="text-2xl">👨‍🎓</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    {cls.students?.length || 0} students · Teacher: {data.teachers.find(t => t.id === cls.teacherId)?.name || 'Unassigned'}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {(cls.subjects || []).slice(0, 5).map(subject => (
+                      <span key={subject} className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">
+                        {subject}
+                      </span>
+                    ))}
+                    {(cls.subjects || []).length > 5 && (
+                      <span className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">
+                        +{cls.subjects.length - 5} more
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <span className="text-3xl">👨‍🎓</span>
               </div>
-            ))}
-          </div>
+            </div>
+          )) : (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">No classes found for selected level</p>
+          )}
         </div>
+      </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-            Upcoming Exams
-          </h2>
-          <div className="space-y-3">
-            {data.exams.map((exam) => (
-              <div
-                key={exam.id}
-                className="p-4 border-l-4 border-purple-600 bg-gray-50 dark:bg-gray-700 rounded"
-              >
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  {exam.name}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {exam.subject}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                  📅 {exam.date}
-                </p>
-              </div>
-            ))}
-          </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Curriculum Structure</h2>
+        <div className="space-y-4">
+          {Object.entries(CURRICULUM).map(([level, info]) => (
+            <div key={level} className="p-4 border-l-4 border-purple-600 bg-gray-50 dark:bg-gray-700 rounded">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{level}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Grades: {info.grades.join(', ')}
+              </p>
+              {'pathways' in info && (
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Career Pathways:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(info.pathways).map(pathway => (
+                      <span key={pathway} className="px-2 py-1 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100 rounded">
+                        {pathway}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
+
 
 function ReportsPage() {
   const { data } = useData();
@@ -3791,7 +4513,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
       <Navbar />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 pl-[300px] pt-20">
           <AnimatePresence mode="wait">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -3834,6 +4556,7 @@ function App() {
         ),
       students: <StudentsPage />,
       assessments: <AssessmentsPage />,
+      library: <LibraryPage/>,
       "cbc-reports": <CBCReportsPage />,
       "lesson-plans": <LessonPlansPage />,
       finance: <FinancePage />,
@@ -3857,6 +4580,8 @@ function App() {
 
   return renderPage();
 }
+
+
 
 function Home() {
   return (
